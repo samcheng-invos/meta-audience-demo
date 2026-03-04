@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>invosData — Meta 受眾解密器</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep: #080E1A;
+  --bg-card: #0C1626;
+  --bg-elevated: #111D33;
+  --bg-input: #0A1322;
+  --cyan: #00DFA6;
+  --cyan-dim: rgba(0,223,166,0.1);
+  --cyan-mid: rgba(0,223,166,0.2);
+  --cyan-glow: rgba(0,223,166,0.3);
+  --purple: #B867FD;
+  --purple-dim: rgba(184,103,253,0.08);
+  --orange: #FF9F43;
+  --orange-dim: rgba(255,159,67,0.1);
+  --pink: #FF6B8A;
+  --blue: #5B8DEF;
+  --blue-dim: rgba(91,141,239,0.1);
+  --yellow: #FECA57;
+  --text-primary: #E4EAF5;
+  --text-secondary: #7E92B5;
+  --text-dim: #4A5E80;
+  --border: rgba(255,255,255,0.05);
+  --border-hover: rgba(255,255,255,0.12);
+  --font-display: 'DM Sans', 'Noto Sans TC', sans-serif;
+  --font-body: 'Noto Sans TC', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  line-height: 1.65;
+  min-height: 100vh;
+}
+
+/* ── Ambient background ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 15% 20%, rgba(0,223,166,0.06), transparent),
+    radial-gradient(ellipse 500px 500px at 85% 70%, rgba(184,103,253,0.05), transparent);
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999;
+}
+
+/* ── App Shell ── */
+.app-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* ── Top Bar ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 0 2.5rem;
+  animation: fadeIn .6s ease both;
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: .7rem;
+}
+.topbar-logo {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: .75rem;
+  color: var(--bg-deep);
+}
+.topbar-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: .95rem;
+  color: var(--text-secondary);
+}
+.topbar-badge {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  padding: .3rem .8rem;
+  border-radius: 100px;
+  background: var(--orange-dim);
+  color: var(--orange);
+  border: 1px solid rgba(255,159,67,0.2);
+  letter-spacing: .05em;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Hero Header ── */
+.hero-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  animation: fadeUp .7s ease .1s both;
+}
+.hero-header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: .7rem;
+}
+.hero-header h1 .gr {
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-header p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Wizard Steps Indicator ── */
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 2.5rem;
+  animation: fadeUp .7s ease .2s both;
+}
+.wiz-step {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .5rem 1rem;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  position: relative;
+  transition: color .3s ease;
+}
+.wiz-step.active { color: var(--cyan); }
+.wiz-step.done { color: var(--text-secondary); }
+.wiz-step .wiz-num {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  font-weight: 600;
+  transition: all .3s ease;
+}
+.wiz-step.active .wiz-num {
+  border-color: var(--cyan);
+  background: var(--cyan-dim);
+  color: var(--cyan);
+}
+.wiz-step.done .wiz-num {
+  border-color: var(--cyan);
+  background: var(--cyan);
+  color: var(--bg-deep);
+}
+.wiz-line {
+  width: 40px; height: 1px;
+  background: var(--text-dim);
+  transition: background .3s ease;
+}
+.wiz-line.done { background: var(--cyan); }
+
+/* ── Panel ── */
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 60px rgba(0,0,0,0.3);
+  animation: fadeUp .7s ease .3s both;
+}
+.panel-body {
+  padding: 2.5rem 2rem;
+}
+
+/* ── Step views ── */
+.step-view { display: none; }
+.step-view.active { display: block; animation: fadeUp .4s ease both; }
+
+/* ── Step 1: Product Input ── */
+.input-group {
+  margin-bottom: 1.8rem;
+}
+.input-label {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: .6rem;
+}
+.input-label .req {
+  color: var(--pink);
+  margin-left: .2rem;
+}
+
+.text-input {
+  width: 100%;
+  padding: .9rem 1.2rem;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: .95rem;
+  outline: none;
+  transition: border-color .25s ease, box-shadow .25s ease;
+}
+.text-input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--cyan-dim);
+}
+.text-input::placeholder { color: var(--text-dim); }
+
+.input-hint {
+  font-size: .75rem;
+  color: var(--text-dim);
+  margin-top: .4rem;
+  font-style: italic;
+}
+
+/* Quick select chips */
+.quick-picks {
+  display: flex; flex-wrap: wrap; gap: .5rem;
+  margin-top: .8rem;
+}
+.quick-chip {
+  padding: .4rem .9rem;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: .78rem;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.quick-chip:hover {
+  border-color: var(--cyan-mid);
+  color: var(--cyan);
+  background: var(--cyan-dim);
+}
+.quick-chip.selected {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: var(--cyan-dim);
+  font-weight: 600;
+}
+
+/* ── Step 2: Confirm Attributes ── */
+.attr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 640px) {
+  .attr-grid { grid-template-columns: 1fr; }
+}
+
+.attr-card {
+  background: var(--bg-input);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 1.2rem;
+  cursor: pointer;
+  transition: all .25s ease;
+  position: relative;
+}
+.attr-card:hover { border-color: var(--border-hover); }
+.attr-card.checked {
+  border-color: var(--cyan);
+  background: rgba(0,223,166,0.04);
+}
+.attr-card .attr-check {
+  position: absolute;
+  top: 1rem; right: 1rem;
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s ease;
+  font-size: .75rem;
+  color: transparent;
+}
+.attr-card.checked .attr-check {
+  border-color: var(--cyan);
+  background: var(--cyan);
+  color: var(--bg-deep);
+}
+.attr-card .attr-icon {
+  font-size: 1.3rem;
+  margin-bottom: .5rem;
+}
+.attr-card h4 {
+  font-family: var(--font-display);
+  font-size: .9rem;
+  margin-bottom: .25rem;
+}
+.attr-card p {
+  font-size: .78rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ── Step 3: Results ── */
+.results-header {
+  display: flex; align-items: center; gap: .8rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+.results-header .rh-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--cyan-dim), var(--purple-dim));
+  border: 1px solid var(--cyan-mid);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+}
+.results-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+.results-header p {
+  font-size: .8rem;
+  color: var(--text-dim);
+}
+.results-header .db-tag {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  padding: .3rem .7rem;
+  border-radius: 6px;
+  background: var(--cyan-dim);
+  color: var(--cyan);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 12px var(--cyan-dim); }
+}
+
+.audience-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  transition: all .3s ease;
+  animation: resultSlide .5s ease both;
+  position: relative;
+  overflow: hidden;
+}
+.audience-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
+}
+.audience-card:nth-child(1)::before { background: linear-gradient(90deg, var(--cyan), var(--purple)); }
+.audience-card:nth-child(2)::before { background: linear-gradient(90deg, var(--orange), var(--yellow)); }
+.audience-card:nth-child(3)::before { background: linear-gradient(90deg, var(--purple), var(--pink)); }
+.audience-card:nth-child(1) { animation-delay: .1s; }
+.audience-card:nth-child(2) { animation-delay: .25s; }
+.audience-card:nth-child(3) { animation-delay: .4s; }
+
+@keyframes resultSlide {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.audience-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+}
+
+.aud-top {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: .8rem;
+}
+.aud-top h4 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.aud-match {
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  padding: .25rem .65rem;
+  border-radius: 6px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.match-high { background: var(--cyan-dim); color: var(--cyan); }
+.match-mid { background: var(--orange-dim); color: var(--orange); }
+
+.aud-desc {
+  font-size: .88rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.aud-tags {
+  display: flex; flex-wrap: wrap; gap: .4rem;
+  margin-bottom: 1rem;
+}
+.aud-tag {
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  padding: .2rem .55rem;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.aud-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .6rem;
+}
+.aud-metric {
+  background: var(--bg-card);
+  border-radius: 10px;
+  padding: .7rem .8rem;
+  text-align: center;
+}
+.aud-metric .metric-val {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.aud-metric:nth-child(1) .metric-val { color: var(--cyan); }
+.aud-metric:nth-child(2) .metric-val { color: var(--orange); }
+.aud-metric:nth-child(3) .metric-val { color: var(--purple); }
+.aud-metric .metric-label {
+  font-size: .68rem;
+  color: var(--text-dim);
+  margin-top: .15rem;
+}
+
+/* ── CTA lock ── */
+.cta-lock {
+  background: linear-gradient(135deg, rgba(0,223,166,0.06), rgba(184,103,253,0.04));
+  border: 1px solid var(--cyan-mid);
+  border-radius: 14px;
+  padding: 1.5rem;
+  text-align: center;
+  margin-top: 1.5rem;
+  animation: resultSlide .5s ease .55s both;
+}
+.cta-lock h4 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  margin-bottom: .4rem;
+}
+.cta-lock p {
+  font-size: .85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+.cta-lock-features {
+  display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+}
+.cta-lock-feat {
+  font-size: .78rem;
+  color: var(--text-dim);
+}
+.cta-lock-feat span { color: var(--cyan); margin-right: .3rem; }
+
+/* ── Buttons ── */
+.btn-row {
+  display: flex; gap: .8rem; justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.btn {
+  padding: .75rem 1.6rem;
+  border-radius: 11px;
+  font-family: var(--font-body);
+  font-size: .88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all .25s ease;
+}
+.btn-primary {
+  background: var(--cyan);
+  color: var(--bg-deep);
+  box-shadow: 0 0 20px var(--cyan-dim);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 35px var(--cyan-glow); }
+.btn-primary:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.btn-cta {
+  background: linear-gradient(135deg, var(--cyan), #00B88C);
+  color: var(--bg-deep);
+  padding: .85rem 2rem;
+  font-size: .95rem;
+  border-radius: 12px;
+  border: none;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 0 30px var(--cyan-glow);
+  transition: all .25s ease;
+}
+.btn-cta:hover { transform: translateY(-2px); box-shadow: 0 0 50px var(--cyan-glow); }
+
+/* ── Loading state ── */
+.loading-overlay {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+.loading-overlay.active { display: flex; animation: fadeIn .3s ease; }
+
+.loader-ring {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--cyan);
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-overlay h4 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  margin-bottom: .5rem;
+}
+.loading-overlay p {
+  font-size: .85rem;
+  color: var(--text-dim);
+}
+.loading-log {
+  margin-top: 1.2rem;
+  font-family: var(--font-mono);
+  font-size: .72rem;
+  color: var(--text-dim);
+  text-align: left;
+  max-width: 360px;
+}
+.loading-log .log-line {
+  padding: .2rem 0;
+  opacity: 0;
+  animation: fadeIn .3s ease forwards;
+}
+.loading-log .log-line .log-ok { color: var(--cyan); }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .app-shell { padding: 1rem 1rem 3rem; }
+  .panel-body { padding: 1.5rem 1.2rem; }
+  .aud-metrics { grid-template-columns: 1fr 1fr; }
+  .wizard-steps { gap: 0; }
+  .wiz-step { padding: .5rem .5rem; font-size: .75rem; }
+  .wiz-line { width: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">iD</div>
+      <span class="topbar-name">invosData</span>
+    </div>
+    <div class="topbar-badge">PLG DEMO PROTOTYPE</div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero-header">
+    <h1>Meta <span class="gr">受眾解密器</span></h1>
+    <p>輸入你的產品，解鎖真實消費數據驅動的精準受眾建議</p>
+  </div>
+
+  <!-- Wizard Steps -->
+  <div class="wizard-steps" id="wizardSteps">
+    <div class="wiz-step active" data-wiz="1">
+      <span class="wiz-num">1</span> 輸入產品
+    </div>
+    <div class="wiz-line" id="wizLine1"></div>
+    <div class="wiz-step" data-wiz="2">
+      <span class="wiz-num">2</span> 確認屬性
+    </div>
+    <div class="wiz-line" id="wizLine2"></div>
+    <div class="wiz-step" data-wiz="3">
+      <span class="wiz-num">3</span> 受眾建議
+    </div>
+  </div>
+
+  <!-- Main Panel -->
+  <div class="panel">
+    <div class="panel-body">
+
+      <!-- ═══ STEP 1: Product Input ═══ -->
+      <div class="step-view active" id="step1">
+        <div class="input-group">
+          <label class="input-label">你的產品名稱或品類 <span class="req">*</span></label>
+          <input class="text-input" type="text" id="productInput" placeholder="例如：益生菌、機能飲料、葉黃素膠囊...">
+          <div class="input-hint">輸入產品名稱、品牌名或品類關鍵字</div>
+          <div class="quick-picks">
+            <button class="quick-chip" data-val="益生菌">🧬 益生菌</button>
+            <button class="quick-chip" data-val="葉黃素膠囊">👁️ 葉黃素膠囊</button>
+            <button class="quick-chip" data-val="膠原蛋白飲">✨ 膠原蛋白飲</button>
+            <button class="quick-chip" data-val="機能飲料">⚡ 機能飲料</button>
+            <button class="quick-chip" data-val="燕麥奶">🥛 燕麥奶</button>
+            <button class="quick-chip" data-val="寵物飼料">🐾 寵物飼料</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">主要銷售通路</label>
+          <div class="quick-picks">
+            <button class="quick-chip channel-chip" data-val="電商平台">🛒 電商平台</button>
+            <button class="quick-chip channel-chip" data-val="藥妝通路">💊 藥妝通路</button>
+            <button class="quick-chip channel-chip" data-val="超商/超市">🏪 超商/超市</button>
+            <button class="quick-chip channel-chip" data-val="品牌官網">🌐 品牌官網</button>
+            <button class="quick-chip channel-chip" data-val="直銷/團購">📦 直銷/團購</button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="toStep2" disabled>下一步：確認屬性 →</button>
+        </div>
+      </div>
+
+      <!-- ═══ STEP 2: Confirm Attributes ═══ -->
+      <div class="step-view" id="step2">
+        <div style="margin-bottom:1.2rem;">
+          <span style="font-family:var(--font-mono); font-size:.75rem; color:var(--cyan);">// 根據「<span id="productEcho"></span>」自動推薦以下屬性，請勾選符合的項目</span>
+        </div>
+
+        <div class="attr-grid" id="attrGrid">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="backToStep1">← 返回</button>
+          <button class="btn btn-primary" id="toStep3" disabled>查詢受眾建議 →</button>
+        </div>
+      </div>
+
+      <!-- ═══ Loading ═══ -->
+      <div class="loading-overlay" id="loadingView">
+        <div class="loader-ring"></div>
+        <h4>正在查詢 invosData 資料庫...</h4>
+        <p>比對數百億筆發票消費數據</p>
+        <div class="loading-log" id="loadingLog"></div>
+      </div>
+
+      <!-- ═══ STEP 3: Results ═══ -->
+      <div class="step-view" id="step3">
+        <div class="results-header">
+          <div class="rh-icon">🎯</div>
+          <div>
+            <h3>受眾建議報告</h3>
+            <p>基於「<span id="productEcho2"></span>」的真實消費行為分析</p>
+          </div>
+          <div class="db-tag">● LIVE DATA</div>
+        </div>
+
+        <div id="audienceResults">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div class="cta-lock">
+          <h4>🔒 想看完整報告？</h4>
+          <p>以下進階功能需要 <strong style="color:var(--cyan);">invosData 企業通行證</strong> 才能解鎖</p>
+          <div class="cta-lock-features">
+            <div class="cta-lock-feat"><span>✓</span> 受眾規模精確估算</div>
+            <div class="cta-lock-feat"><span>✓</span> 競品受眾重疊分析</div>
+            <div class="cta-lock-feat"><span>✓</span> Meta 興趣標籤對照表</div>
+            <div class="cta-lock-feat"><span>✓</span> 歷史趨勢比較</div>
+          </div>
+          <button class="btn-cta">免費註冊企業通行證 →</button>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="restart">🔄 重新查詢</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──
+const productProfiles = {
+  '益生菌': {
+    attrs: [
+      { icon: '🏥', title: '健康保健品類', desc: '歸屬於保健食品 / 機能性食品', key: 'health' },
+      { icon: '🔁', title: '高回購率品類', desc: '消費者平均每 45-60 天回購一次', key: 'repurchase' },
+      { icon: '👩', title: '女性消費主力', desc: '女性購買佔比預估超過 65%', key: 'female' },
+      { icon: '📱', title: '電商佔比高', desc: '線上通路銷售佔比超過 50%', key: 'ecom' },
+      { icon: '💰', title: '中高單價帶', desc: '主力價格帶 NT$600-1,200/盒', key: 'midprice' },
+      { icon: '🏷️', title: '品牌忠誠度中等', desc: '消費者常在 2-3 個品牌間切換', key: 'switching' },
+    ],
+    audiences: [
+      {
+        name: '核心受眾：健康意識型女性',
+        desc: '25-44 歲女性，過去 90 天內購買過保健食品品類，偏好藥妝與電商通路，對「腸道健康」「免疫力」等關鍵字有高度反應。',
+        match: 'high',
+        tags: ['女性 25-44', '保健品買家', '藥妝通路', '電商活躍', '健康關注'],
+        metrics: { reach: '82 萬', index: '3.2x', cpa: '-35%' }
+      },
+      {
+        name: '擴展受眾：母嬰轉換群',
+        desc: '28-38 歲，過去 180 天有嬰幼兒用品消費紀錄的族群。數據顯示此族群對「兒童益生菌」的跨品類購買率為一般人的 4.1 倍。',
+        match: 'high',
+        tags: ['母嬰消費者', '28-38 歲', '高交叉購買', '品牌探索期'],
+        metrics: { reach: '45 萬', index: '4.1x', cpa: '-28%' }
+      },
+      {
+        name: '潛力受眾：運動健身族',
+        desc: '22-40 歲，有運動營養品（乳清蛋白、BCAA）消費紀錄。此族群對機能性益生菌的認知正在快速上升，為藍海受眾。',
+        match: 'mid',
+        tags: ['運動消費者', '22-40 歲', '機能食品', '藍海機會'],
+        metrics: { reach: '38 萬', index: '1.8x', cpa: '-12%' }
+      }
+    ]
+  },
+  '葉黃素膠囊': {
+    attrs: [
+      { icon: '🏥', title: '健康保健品類', desc: '歸屬於護眼保健 / 機能性食品', key: 'health' },
+      { icon: '👴', title: '年齡層偏高', desc: '40 歲以上消費者佔比超過 60%', key: 'older' },
+      { icon: '🔁', title: '穩定回購品類', desc: '消費者回購週期約 60-90 天', key: 'repurchase' },
+      { icon: '💊', title: '藥妝通路強勢', desc: '實體藥妝通路銷售佔比超過 45%', key: 'pharma' },
+      { icon: '🎁', title: '送禮場景高', desc: '節慶期間銷量提升 80%+（孝親送禮）', key: 'gift' },
+      { icon: '📺', title: '電視/社群雙驅動', desc: '受電視廣告與 FB 社群影響大', key: 'media' },
+    ],
+    audiences: [
+      {
+        name: '核心受眾：3C 重度使用者',
+        desc: '30-55 歲，日均螢幕使用超過 8 小時的上班族群。數據顯示此族群在「眼睛保健」品類的消費金額為平均值的 2.8 倍。',
+        match: 'high',
+        tags: ['上班族', '30-55 歲', '3C 重度用戶', '護眼需求'],
+        metrics: { reach: '120 萬', index: '2.8x', cpa: '-32%' }
+      },
+      {
+        name: '擴展受眾：孝親送禮族',
+        desc: '30-45 歲，過去 12 個月在節慶期間（母親節/父親節/過年）有保健品消費紀錄。此族群的客單價為自用族群的 1.7 倍。',
+        match: 'high',
+        tags: ['節慶消費', '30-45 歲', '高客單', '禮盒偏好'],
+        metrics: { reach: '68 萬', index: '2.3x', cpa: '-22%' }
+      },
+      {
+        name: '潛力受眾：銀髮自主健康管理',
+        desc: '50-65 歲，有主動搜尋保健資訊行為、在藥妝通路有規律消費紀錄。品牌忠誠度高，一旦轉換長期留存。',
+        match: 'mid',
+        tags: ['50-65 歲', '藥妝忠實客', '高留存', '資訊搜尋型'],
+        metrics: { reach: '55 萬', index: '1.9x', cpa: '-15%' }
+      }
+    ]
+  },
+  '膠原蛋白飲': {
+    attrs: [
+      { icon: '✨', title: '美容保健品類', desc: '歸屬於美顏 / 內服美容食品', key: 'beauty' },
+      { icon: '👩', title: '極度女性導向', desc: '女性購買佔比超過 85%', key: 'female' },
+      { icon: '📱', title: '社群驅動力強', desc: 'KOL/KOC 推薦為第一購買觸發點', key: 'social' },
+      { icon: '💰', title: '高單價高毛利', desc: '主力價格帶 NT$1,200-2,500/盒', key: 'premium' },
+      { icon: '🛒', title: '電商與官網為主', desc: '線上銷售佔比超過 70%', key: 'ecom' },
+      { icon: '🔁', title: '訂閱制潛力高', desc: '持續型消費，適合包月方案', key: 'subscription' },
+    ],
+    audiences: [
+      {
+        name: '核心受眾：輕熟齡愛美族',
+        desc: '28-42 歲女性，過去 90 天在美妝/保養品類有中高消費，同時對「抗老」「膠原蛋白」關鍵字有搜尋或互動行為。',
+        match: 'high',
+        tags: ['女性 28-42', '美妝消費者', '抗老關注', '中高消費力'],
+        metrics: { reach: '95 萬', index: '3.5x', cpa: '-38%' }
+      },
+      {
+        name: '擴展受眾：健身美體族',
+        desc: '25-38 歲女性，有運動消費紀錄（瑜珈/健身房/運動服飾），數據顯示此族群對內服美容品的交叉購買率正快速攀升。',
+        match: 'high',
+        tags: ['運動女性', '25-38 歲', '身體管理', '新增需求'],
+        metrics: { reach: '52 萬', index: '2.7x', cpa: '-25%' }
+      },
+      {
+        name: '潛力受眾：男性精緻保養',
+        desc: '28-40 歲男性，有男性保養品消費紀錄。此為極度藍海市場，品類滲透率不到 3%，但年增率超過 45%。',
+        match: 'mid',
+        tags: ['男性 28-40', '精緻保養', '藍海', '高成長'],
+        metrics: { reach: '18 萬', index: '1.4x', cpa: '-8%' }
+      }
+    ]
+  },
+};
+
+// Default/fallback
+const defaultProfile = {
+  attrs: [
+    { icon: '📦', title: '消費品品類', desc: '歸屬於一般消費品 / 快消品', key: 'fmcg' },
+    { icon: '🔁', title: '具回購特性', desc: '消費者有定期購買的行為模式', key: 'repurchase' },
+    { icon: '👥', title: '大眾消費市場', desc: '目標客群年齡跨度較廣', key: 'mass' },
+    { icon: '🛒', title: '多通路銷售', desc: '線上與線下通路並行', key: 'multichannel' },
+    { icon: '📊', title: '競品眾多', desc: '市場上有多個競爭品牌', key: 'competitive' },
+    { icon: '💡', title: '品牌差異化需求', desc: '需要透過數據找到精準切入點', key: 'differentiate' },
+  ],
+  audiences: [
+    {
+      name: '核心受眾：品類重度消費者',
+      desc: '過去 90 天在該品類有 2 次以上消費紀錄的族群。他們的品類消費金額為一般消費者的 3 倍，是最值得優先溝通的對象。',
+      match: 'high',
+      tags: ['品類重度用戶', '高消費力', '高轉換潛力'],
+      metrics: { reach: '推估中', index: '3.0x', cpa: '-30%' }
+    },
+    {
+      name: '擴展受眾：關聯品類交叉購買者',
+      desc: '雖然尚未購買你的品類，但在高度關聯的品類中有活躍消費行為。透過 invosData 的交叉分析，可以精準鎖定這群「即將跨入」的潛力客群。',
+      match: 'high',
+      tags: ['交叉購買', '品類拓展', '高關聯度'],
+      metrics: { reach: '推估中', index: '2.2x', cpa: '-20%' }
+    },
+    {
+      name: '潛力受眾：競品流失客群',
+      desc: '過去曾購買競品但近期已停止購買的消費者。他們對品類有既有認知，轉換門檻最低，是搶佔市佔率的黃金目標。',
+      match: 'mid',
+      tags: ['競品流失', '低轉換門檻', '市佔搶攻'],
+      metrics: { reach: '推估中', index: '1.7x', cpa: '-15%' }
+    }
+  ]
+};
+
+// ── State ──
+let currentStep = 1;
+let selectedProduct = '';
+let selectedChannels = [];
+let checkedAttrs = new Set();
+
+// ── DOM ──
+const productInput = document.getElementById('productInput');
+const toStep2Btn = document.getElementById('toStep2');
+const toStep3Btn = document.getElementById('toStep3');
+const backBtn = document.getElementById('backToStep1');
+const restartBtn = document.getElementById('restart');
+
+// ── Quick chip selection ──
+document.querySelectorAll('.quick-chip:not(.channel-chip)').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.quick-chip:not(.channel-chip)').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    productInput.value = chip.dataset.val;
+    toStep2Btn.disabled = false;
+  });
+});
+
+document.querySelectorAll('.channel-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    chip.classList.toggle('selected');
+  });
+});
+
+productInput.addEventListener('input', () => {
+  toStep2Btn.disabled = !productInput.value.trim();
+  document.querySelectorAll('.quick-chip:not(.channel-chip)').forEach(c => c.classList.remove('selected'));
+});
+
+// ── Step navigation ──
+toStep2Btn.addEventListener('click', () => {
+  selectedProduct = productInput.value.trim();
+  if (!selectedProduct) return;
+  goToStep(2);
+});
+
+backBtn.addEventListener('click', () => goToStep(1));
+
+toStep3Btn.addEventListener('click', () => {
+  showLoading();
+});
+
+restartBtn.addEventListener('click', () => {
+  checkedAttrs.clear();
+  selectedProduct = '';
+  productInput.value = '';
+  toStep2Btn.disabled = true;
+  document.querySelectorAll('.quick-chip').forEach(c => c.classList.remove('selected'));
+  goToStep(1);
+});
+
+function goToStep(step) {
+  currentStep = step;
+
+  // Update wizard
+  document.querySelectorAll('.wiz-step').forEach(ws => {
+    const n = parseInt(ws.dataset.wiz);
+    ws.classList.remove('active', 'done');
+    if (n === step) ws.classList.add('active');
+    else if (n < step) ws.classList.add('done');
+  });
+  document.getElementById('wizLine1').classList.toggle('done', step >= 2);
+  document.getElementById('wizLine2').classList.toggle('done', step >= 3);
+
+  // Show view
+  document.querySelectorAll('.step-view, .loading-overlay').forEach(v => v.classList.remove('active'));
+  document.getElementById(`step${step}`).classList.add('active');
+
+  if (step === 2) populateAttrs();
+  if (step === 3) populateResults();
+}
+
+// ── Populate Step 2 ──
+function populateAttrs() {
+  const profile = productProfiles[selectedProduct] || defaultProfile;
+  document.getElementById('productEcho').textContent = selectedProduct;
+  checkedAttrs.clear();
+  toStep3Btn.disabled = true;
+
+  const grid = document.getElementById('attrGrid');
+  grid.innerHTML = profile.attrs.map((a, i) => `
+    <div class="attr-card" data-key="${a.key}" data-idx="${i}">
+      <div class="attr-check">✓</div>
+      <div class="attr-icon">${a.icon}</div>
+      <h4>${a.title}</h4>
+      <p>${a.desc}</p>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.attr-card').forEach(card => {
+    card.addEventListener('click', () => {
+      card.classList.toggle('checked');
+      const key = card.dataset.key;
+      if (card.classList.contains('checked')) checkedAttrs.add(key);
+      else checkedAttrs.delete(key);
+      toStep3Btn.disabled = checkedAttrs.size === 0;
+    });
+  });
+}
+
+// ── Loading ──
+function showLoading() {
+  document.querySelectorAll('.step-view').forEach(v => v.classList.remove('active'));
+  const loading = document.getElementById('loadingView');
+  loading.classList.add('active');
+
+  const log = document.getElementById('loadingLog');
+  log.innerHTML = '';
+
+  const lines = [
+    { text: '→ 連線 invosData 發票資料庫...', delay: 300 },
+    { text: '→ 比對品類：' + selectedProduct, delay: 800 },
+    { text: '→ 掃描消費者行為資料... (32.7 億筆)', delay: 1500 },
+    { text: '→ 交叉分析通路與人口統計...', delay: 2200 },
+    { text: '→ 計算受眾相似度與購買傾向...', delay: 2800 },
+    { text: '<span class="log-ok">✓ 完成：已產出 3 組建議受眾</span>', delay: 3400 },
+  ];
+
+  lines.forEach(l => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.innerHTML = l.text;
+      div.style.animationDelay = '0s';
+      log.appendChild(div);
+    }, l.delay);
+  });
+
+  setTimeout(() => {
+    loading.classList.remove('active');
+    goToStep(3);
+  }, 4000);
+}
+
+// ── Populate Step 3 ──
+function populateResults() {
+  const profile = productProfiles[selectedProduct] || defaultProfile;
+  document.getElementById('productEcho2').textContent = selectedProduct;
+
+  const container = document.getElementById('audienceResults');
+  container.innerHTML = profile.audiences.map(a => `
+    <div class="audience-card">
+      <div class="aud-top">
+        <h4>${a.name}</h4>
+        <span class="aud-match ${a.match === 'high' ? 'match-high' : 'match-mid'}">${a.match === 'high' ? '🎯 高度匹配' : '🔍 潛力市場'}</span>
+      </div>
+      <div class="aud-desc">${a.desc}</div>
+      <div class="aud-tags">
+        ${a.tags.map(t => `<span class="aud-tag">${t}</span>`).join('')}
+      </div>
+      <div class="aud-metrics">
+        <div class="aud-metric">
+          <div class="metric-val">${a.metrics.reach}</div>
+          <div class="metric-label">預估可觸及</div>
+        </div>
+        <div class="aud-metric">
+          <div class="metric-val">${a.metrics.index}</div>
+          <div class="metric-label">購買傾向指數</div>
+        </div>
+        <div class="aud-metric">
+          <div class="metric-val">${a.metrics.cpa}</div>
+          <div class="metric-label">預估 CPA 優化</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+</script>
+
+</body>
+</html>
